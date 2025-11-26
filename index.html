@@ -1,0 +1,1570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Intelligent FHIR-Enabled Coding Accuracy Auditor – Lite Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --bg-soft: #e5e7eb;
+      --card: #ffffff;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.06);
+      --accent-strong: rgba(59, 130, 246, 0.12);
+      --text: #0f172a;
+      --text-soft: #374151;
+      --danger: #ef4444;
+      --danger-soft: rgba(248, 113, 113, 0.12);
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --radius-lg: 18px;
+      --radius-xl: 22px;
+      --shadow-sm: 0 6px 18px rgba(148, 163, 184, 0.35);
+      --shadow-soft: 0 18px 45px rgba(148, 163, 184, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, #e0f2fe 0, #f9fafb 55%, #eef2ff 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1120px;
+      background: linear-gradient(145deg, #ffffff, #f9fafb);
+      border-radius: 30px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background:
+        radial-gradient(circle at 0 0, rgba(191, 219, 254, 0.55), transparent 60%),
+        radial-gradient(circle at 100% 0, rgba(219, 234, 254, 0.65), transparent 55%);
+      opacity: 0.8;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .shell-inner {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 18px;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.1fr);
+    }
+
+    @media (max-width: 880px) {
+      .shell-inner {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      body {
+        padding: 16px;
+      }
+      .shell {
+        padding: 18px;
+        border-radius: 22px;
+      }
+    }
+
+    .header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+
+    .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #0f172a;
+    }
+
+    h1 span.badge {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #eff6ff;
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      color: #1d4ed8;
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 0.86rem;
+      color: var(--text-soft);
+    }
+
+    .tagline {
+      margin-top: 4px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+    }
+
+    .badge-pulse {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #eff6ff;
+      border: 1px solid rgba(59, 130, 246, 0.6);
+      font-size: 0.74rem;
+      color: #1d4ed8;
+      white-space: nowrap;
+    }
+
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.55);
+      }
+      70% {
+        transform: scale(1.6);
+        box-shadow: 0 0 0 8px transparent;
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 transparent;
+      }
+    }
+
+    .panel {
+      background: radial-gradient(circle at top left, rgba(191, 219, 254, 0.45), transparent 60%),
+        radial-gradient(circle at 120% 0, rgba(219, 234, 254, 0.6), transparent 55%),
+        var(--card);
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      box-shadow: var(--shadow-sm);
+      padding: 14px 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      pointer-events: none;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 2px;
+    }
+
+    .panel-title {
+      font-size: 0.86rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .pill {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      color: var(--text-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .pill span.dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .fieldset-label {
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--text-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .fieldset-label span.sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
+      color: var(--text);
+      padding: 10px 11px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+      font-size: 0.78rem;
+      line-height: 1.4;
+      outline: none;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow:
+        0 0 0 1px rgba(59, 130, 246, 0.9),
+        0 0 0 8px rgba(191, 219, 254, 0.9);
+      background: #ffffff;
+    }
+
+    .textarea-small {
+      min-height: 110px;
+    }
+
+    .helper-text {
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .helper-text span.keys {
+      opacity: 0.85;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.15s ease;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      background: radial-gradient(circle at top left, #93c5fd, #3b82f6);
+      color: #ffffff;
+      box-shadow: 0 10px 24px rgba(59, 130, 246, 0.45);
+    }
+
+    button.primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 32px rgba(59, 130, 246, 0.55);
+    }
+
+    button.ghost {
+      background: #eef2ff;
+      color: var(--text-soft);
+      border: 1px solid rgba(148, 163, 184, 0.8);
+    }
+
+    button.ghost:hover {
+      background: #e0f2fe;
+      transform: translateY(-1px);
+    }
+
+    button.small {
+      padding: 6px 10px;
+      font-size: 0.74rem;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .chip {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.7);
+      color: var(--text-soft);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(239, 246, 255, 0.9);
+    }
+
+    .chip span.swatch {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.9);
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+      margin-top: 8px;
+    }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .score-badge {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 4px;
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: #eff6ff;
+      border: 1px solid rgba(59, 130, 246, 0.6);
+      font-size: 0.76rem;
+      color: #1d4ed8;
+    }
+
+    .score-badge strong {
+      font-size: 1rem;
+    }
+
+    .score-bar-wrap {
+      margin-top: 4px;
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+      border: 1px solid #d1d5db;
+    }
+
+    .score-bar {
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, #22c55e, #eab308, #f97316, #fb7185);
+      background-size: 200% 100%;
+      transition: width 0.4s ease, transform 0.3s ease;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .meta-pill {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+    }
+
+    .issues-list,
+    .suggestions-list {
+      margin: 0;
+      padding-left: 16px;
+      display: grid;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .issues-list li {
+      background: linear-gradient(
+        135deg,
+        var(--danger-soft),
+        rgba(254, 242, 242, 0.95)
+      );
+      border-radius: 10px;
+      border: 1px solid rgba(248, 113, 113, 0.6);
+      padding: 6px 8px;
+      list-style: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .issues-list li::before {
+      content: "⚠";
+      margin-right: 6px;
+      opacity: 0.95;
+    }
+
+    .suggestions-list li {
+      background: linear-gradient(
+        135deg,
+        rgba(187, 247, 208, 0.4),
+        rgba(240, 253, 250, 0.96)
+      );
+      border-radius: 10px;
+      border: 1px solid rgba(52, 211, 153, 0.6);
+      padding: 6px 8px;
+      list-style: none;
+    }
+
+    .suggestions-list li::before {
+      content: "✨";
+      margin-right: 6px;
+    }
+
+    .empty-state {
+      border-radius: 12px;
+      border: 1px dashed rgba(148, 163, 184, 0.9);
+      padding: 14px;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: #f9fafb;
+      margin-top: 4px;
+    }
+
+    .empty-state strong {
+      color: var(--text-soft);
+    }
+
+    .json-preview {
+      display: none; /* hide FHIR claim snippet preview section */
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      background: #eff6ff;
+      color: var(--text-soft);
+    }
+
+    .status-pill span.indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .status-pill.danger span.indicator {
+      background: var(--danger);
+    }
+
+    .status-pill.danger {
+      border-color: rgba(248, 113, 113, 0.8);
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      max-width: 260px;
+      padding: 9px 12px;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.8);
+      font-size: 0.74rem;
+      color: var(--text-soft);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      box-shadow: 0 16px 40px rgba(148, 163, 184, 0.7);
+      backdrop-filter: blur(18px);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 99;
+    }
+
+    .toast.show {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .toast-icon {
+      font-size: 1rem;
+    }
+
+    .toast-close {
+      margin-left: auto;
+      cursor: pointer;
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    .footer-note {
+      margin-top: 10px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .footer-note strong {
+      color: var(--text-soft);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="title-block">
+        <h1>
+          Intelligent Coding Accuracy Auditor
+          <span class="badge">FHIR + Rules Lite Demo</span>
+        </h1>
+        <p class="subtitle">
+          Simulated AI engine that inspects claim data for NCCI, MUE, LCD, global period
+          and E/M documentation issues before submission.
+        </p>
+        <p class="tagline">
+          FHIR-aware backend · Lite front-end · Pre-submission risk scoring
+        </p>
+      </div>
+      <div class="badge-pulse">
+        <span class="pulse-dot"></span>
+        Live demo · Front-end only
+      </div>
+    </header>
+
+    <div class="shell-inner">
+      <!-- LEFT: INPUT -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Claim Entry &amp; Clinical Note</div>
+          <div class="pill">
+            <span class="dot"></span>
+            DOS · CPT · Modifiers · DX
+          </div>
+        </div>
+
+        <!-- Hidden FHIR JSON area (backend still used, UI hidden for lite mode) -->
+        <div class="fhir-input-section" style="display:none;">
+          <label class="fieldset-label">
+            Paste FHIR-like JSON payload
+            <span class="sub">We’ll simulate a quick audit against demo rules.</span>
+          </label>
+
+          <textarea id="fhirInput" spellcheck="false"></textarea>
+
+          <div class="helper-text">
+            <span>
+              Tip: Use the sample cases below to show common coding and compliance issues.
+            </span>
+            <span class="keys">[Cmd/Ctrl] + A &rarr; Replace JSON</span>
+          </div>
+
+          <div class="controls">
+            <button class="primary" id="runAuditBtn-hidden">
+              ▶ Run Audit
+            </button>
+          </div>
+
+          <div class="chip-row">
+            <div class="chip">
+              <span class="swatch"></span> CPT / ICD-10 cross-check
+            </div>
+            <div class="chip">
+              <span class="swatch"></span> NCCI-style code pair edits
+            </div>
+            <div class="chip">
+              <span class="swatch"></span> Global period &amp; MUE demo
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick claim line entry -->
+        <div class="section-label">Quick Claim Line Entry</div>
+        <label class="fieldset-label">
+          DOS, CPT, Modifier, DX
+          <span class="sub">One line per claim line (comma or | separated).</span>
+        </label>
+
+        <textarea
+          id="quickLinesInput"
+          class="textarea-small"
+          spellcheck="false"
+          placeholder="Example&#10;2025-01-15, 99214, 25, I10&#10;2025-01-15, 93000, , I10">
+        </textarea>
+
+        <div class="helper-text">
+          <span>
+            The auditor will build a Claim resource from these lines and combine it with the FHIR bundle.
+          </span>
+          <span class="keys">Format: DOS, CPT, Modifier(s), DX</span>
+        </div>
+
+        <div class="controls">
+          <button class="primary" id="runAuditBtn">
+            ▶ Run Audit
+          </button>
+          <button class="ghost small" id="loadCleanLinesBtn">
+            Clean Visit
+          </button>
+          <button class="ghost small" id="loadSampleLinesBtn">
+            High-Risk NCCI/MUE
+          </button>
+          <button class="ghost small" id="loadGlobalLinesBtn">
+            Global Surgery
+          </button>
+          <button class="ghost small" id="loadLcdFailLinesBtn">
+            LCD Fail
+          </button>
+          <button class="ghost small" id="loadStrongEmLinesBtn">
+            Strong 99214
+          </button>
+          <button class="ghost small" id="loadMueLinesBtn">
+            MUE Violation
+          </button>
+          <button class="ghost small" id="loadSimpleInjLinesBtn">
+            Simple Injection
+          </button>
+          <button class="ghost small" id="loadWellnessLinesBtn">
+            Wellness Visit
+          </button>
+          <button class="ghost small" id="loadThinEmLinesBtn">
+            Thin 99215
+          </button>
+          <button class="ghost small" id="loadCardioLinesBtn">
+            Cardio E/M+ECG
+          </button>
+        </div>
+
+        <!-- Clinical note -->
+        <div class="section-label">Clinical Note (Optional)</div>
+        <label class="fieldset-label">
+          Documentation excerpt
+          <span class="sub">Used to simulate E/M documentation sufficiency.</span>
+        </label>
+
+        <textarea
+          id="noteInput"
+          class="textarea-small"
+          spellcheck="false"
+          placeholder="Example: HPI, ROS, exam and MDM details for 99214 level visit...">
+        </textarea>
+
+        <div class="helper-text">
+          <span>
+            If an E/M level 4 or 5 is present with thin documentation, we’ll flag a potential risk.
+          </span>
+          <span class="keys">Optional, free text</span>
+        </div>
+      </section>
+
+      <!-- RIGHT: OUTPUT -->
+      <section class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Audit Result</div>
+          <div id="statusPill" class="status-pill">
+            <span class="indicator"></span>
+            Awaiting audit…
+          </div>
+        </div>
+
+        <div class="score-row">
+          <div>
+            <div class="section-label">Risk Score</div>
+            <div class="score-badge">
+              Coding Risk:
+              <strong id="riskPercent">–%</strong>
+            </div>
+            <div class="score-bar-wrap">
+              <div id="scoreBar" class="score-bar"></div>
+            </div>
+          </div>
+          <div>
+            <div class="section-label">Summary</div>
+            <div id="summaryText" style="font-size: 0.8rem; color: var(--text-soft); max-width: 260px;">
+              No audit run yet. Load a sample or enter claim line data to get started.
+            </div>
+          </div>
+        </div>
+
+        <div class="meta-row" id="metaRow">
+          <div class="meta-pill" id="metaProcedures">Procedures detected: 0</div>
+          <div class="meta-pill" id="metaCodes">Claim lines: 0</div>
+          <div class="meta-pill" id="metaFlags">Issues flagged: 0</div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div class="section-label">Issues Detected</div>
+          <ul class="issues-list" id="issuesList"></ul>
+          <div id="issuesEmpty" class="empty-state">
+            <strong>No issues yet.</strong> Run the auditor to see coding gaps, NCCI pairs,
+            MUE limits, LCD conflicts, or risky patterns before submission.
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <div class="section-label">AI-Style Suggestions</div>
+          <ul class="suggestions-list" id="suggestionsList"></ul>
+          <div id="suggestionsEmpty" class="empty-state">
+            Suggestions will appear here, including recommended CPT/ICD-10 alignment,
+            modifier usage, and documentation improvements that a real AI model would generate.
+          </div>
+        </div>
+
+        <div class="json-preview" id="previewBox">
+          <code id="previewCode">// FHIR claim snippet preview is hidden in lite mode.</code>
+        </div>
+
+        <div class="footer-note">
+          <span><strong>Note:</strong> This is a front-end-only simulation using demo rules, not CMS-official logic.</span>
+          <span>Ideal for pitching an AI-powered, FHIR-aware coding accuracy platform.</span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast">
+    <div class="toast-icon">ℹ️</div>
+    <div id="toastMessage">Sample loaded.</div>
+    <div id="toastClose" class="toast-close">✕</div>
+  </div>
+
+  <script>
+    const fhirInput = document.getElementById("fhirInput");
+    const runAuditBtn = document.getElementById("runAuditBtn");
+    const quickLinesInput = document.getElementById("quickLinesInput");
+    const loadSampleLinesBtn = document.getElementById("loadSampleLinesBtn");
+    const loadCleanLinesBtn = document.getElementById("loadCleanLinesBtn");
+    const loadGlobalLinesBtn = document.getElementById("loadGlobalLinesBtn");
+    const loadLcdFailLinesBtn = document.getElementById("loadLcdFailLinesBtn");
+    const loadStrongEmLinesBtn = document.getElementById("loadStrongEmLinesBtn");
+    const loadMueLinesBtn = document.getElementById("loadMueLinesBtn");
+    const loadSimpleInjLinesBtn = document.getElementById("loadSimpleInjLinesBtn");
+    const loadWellnessLinesBtn = document.getElementById("loadWellnessLinesBtn");
+    const loadThinEmLinesBtn = document.getElementById("loadThinEmLinesBtn");
+    const loadCardioLinesBtn = document.getElementById("loadCardioLinesBtn");
+    const noteInput = document.getElementById("noteInput");
+
+    const riskPercent = document.getElementById("riskPercent");
+    const scoreBar = document.getElementById("scoreBar");
+    const summaryText = document.getElementById("summaryText");
+
+    const metaProcedures = document.getElementById("metaProcedures");
+    const metaCodes = document.getElementById("metaCodes");
+    const metaFlags = document.getElementById("metaFlags");
+
+    const issuesList = document.getElementById("issuesList");
+    const issuesEmpty = document.getElementById("issuesEmpty");
+    const suggestionsList = document.getElementById("suggestionsList");
+    const suggestionsEmpty = document.getElementById("suggestionsEmpty");
+
+    const previewCode = document.getElementById("previewCode");
+    const statusPill = document.getElementById("statusPill");
+
+    const toast = document.getElementById("toast");
+    const toastMessage = document.getElementById("toastMessage");
+    const toastClose = document.getElementById("toastClose");
+
+    function showToast(message) {
+      toastMessage.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2600);
+    }
+
+    toastClose.addEventListener("click", () => toast.classList.remove("show"));
+
+    // --- DEMO RULE TABLES (NCCI, GLOBAL, MUE, LCD) ---
+
+    const demoNcciPairs = [
+      {
+        codes: ["93000", "99214"],
+        allowedModifiers: ["25", "59", "XS", "XE", "XU", "XP"],
+        note: "ECG and high-level E/M on same DOS."
+      },
+      {
+        codes: ["11730", "11750"],
+        allowedModifiers: [],
+        note: "Example podiatry code pair."
+      }
+    ];
+
+    const globalSurgeryMap = {
+      "27447": 90,
+      "12001": 10
+    };
+
+    const mueMap = {
+      "96372": 2,
+      "93000": 1
+    };
+
+    const lcdTable = {
+      "93000": ["I10", "I20.0", "R07.9"],
+      "99214": ["I10", "E11.9", "J06.9"],
+      "96372": ["E11.9", "E78.5"]
+    };
+
+    // --- SAMPLE FHIR PAYLOADS (used behind the scenes, still loaded even in lite view) ---
+
+    const cleanSample = {
+      resourceType: "Bundle",
+      type: "collection",
+      entry: [
+        {
+          resource: {
+            resourceType: "Encounter",
+            id: "enc-123",
+            class: { code: "AMB" },
+            type: [{ text: "Office Visit" }]
+          }
+        },
+        {
+          resource: {
+            resourceType: "Procedure",
+            id: "proc-1",
+            code: { coding: [{ system: "http://www.ama-assn.org/go/cpt", code: "99213" }] },
+            status: "completed"
+          }
+        },
+        {
+          resource: {
+            resourceType: "Condition",
+            id: "cond-1",
+            code: { coding: [{ system: "http://hl7.org/fhir/sid/icd-10", code: "J06.9" }] }
+          }
+        },
+        {
+          resource: {
+            resourceType: "Claim",
+            id: "claim-123",
+            status: "active",
+            type: { coding: [{ code: "professional" }] },
+            diagnosis: [
+              {
+                sequence: 1,
+                diagnosisCodeableConcept: {
+                  coding: [{ system: "http://hl7.org/fhir/sid/icd-10", code: "J06.9" }]
+                }
+              }
+            ],
+            item: [
+              {
+                sequence: 1,
+                productOrService: {
+                  coding: [
+                    { system: "http://www.ama-assn.org/go/cpt", code: "99213" }
+                  ]
+                },
+                modifier: [
+                  { coding: [{ code: "25" }], text: "Significant, separately identifiable E/M service" }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    const riskySample = {
+      resourceType: "Bundle",
+      type: "collection",
+      entry: [
+        {
+          resource: {
+            resourceType: "Encounter",
+            id: "enc-987",
+            class: { code: "AMB" },
+            type: [{ text: "Office Visit + Procedure" }]
+          }
+        },
+        {
+          resource: {
+            resourceType: "Procedure",
+            id: "proc-1",
+            code: { coding: [{ system: "http://www.ama-assn.org/go/cpt", code: "99214" }] },
+            status: "completed"
+          }
+        },
+        {
+          resource: {
+            resourceType: "Procedure",
+            id: "proc-2",
+            code: { coding: [{ system: "http://www.ama-assn.org/go/cpt", code: "93000" }] },
+            status: "completed"
+          }
+        },
+        {
+          resource: {
+            resourceType: "Condition",
+            id: "cond-1",
+            code: { coding: [{ system: "http://hl7.org/fhir/sid/icd-10", code: "Z00.00" }] }
+          }
+        },
+        {
+          resource: {
+            resourceType: "Claim",
+            id: "claim-987",
+            status: "active",
+            type: { coding: [{ code: "professional" }] },
+            diagnosis: [
+              {
+                sequence: 1,
+                diagnosisCodeableConcept: {
+                  coding: [{ system: "http://hl7.org/fhir/sid/icd-10", code: "I10" }]
+                }
+              }
+            ],
+            item: [
+              {
+                sequence: 1,
+                productOrService: {
+                  coding: [
+                    { system: "http://www.ama-assn.org/go/cpt", code: "99214" }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    function loadSample(sample, label) {
+      if (!fhirInput) return;
+      fhirInput.value = JSON.stringify(sample, null, 2);
+      showToast(label + " backend sample loaded.");
+    }
+
+    // Init with risky sample so demo is interesting immediately
+    loadSample(riskySample, "Risky");
+
+    // --- Quick line samples (more scenarios) ---
+
+    // Clean visit sample
+    loadCleanLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-01-15, 99213, 25, J06.9";
+      noteInput.value =
+        "Established patient with acute upper respiratory infection. HPI, focused exam and low complexity MDM documented. Conservative management with symptomatic treatment. Documentation supports 99213.";
+      showToast("Clean visit sample loaded.");
+    });
+
+    // High-risk NCCI/MUE sample (existing)
+    loadSampleLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-01-15, 99214, , I10\n" +
+        "2025-01-15, 93000, , I10\n" +
+        "2025-01-15, 96372, , E11.9\n" +
+        "2025-01-15, 96372, , E11.9\n" +
+        "2025-01-15, 96372, , E11.9";
+      noteInput.value =
+        "Established hypertensive diabetic patient. Brief HPI and focused exam. " +
+        "BP reviewed, labs reviewed. Medication adherence discussed. Limited " +
+        "documentation for high-complexity MDM; may not fully support 99214.";
+      showToast("High-risk NCCI/MUE sample loaded.");
+    });
+
+    // Global surgery sample
+    loadGlobalLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-02-01, 27447, , M17.11\n" +
+        "2025-02-01, 99214, , M17.11";
+      noteInput.value =
+        "Pre-operative visit for right total knee arthroplasty. Detailed HPI, exam of affected joint, review of imaging and risks/benefits. Visit primarily for decision for surgery and perioperative planning.";
+      showToast("Global surgery demo sample loaded.");
+    });
+
+    // LCD failure sample (CPT with DX not in LCD table)
+    loadLcdFailLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-03-10, 93000, , Z00.00";
+      noteInput.value =
+        "Annual check-up with no specific cardiac symptoms. ECG ordered as part of routine wellness despite lack of cardiac complaints.";
+      showToast("LCD failure sample loaded.");
+    });
+
+    // Strongly documented 99214 sample (should be low-moderate risk)
+    loadStrongEmLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-03-12, 99214, 25, I10";
+      noteInput.value =
+        "Established patient with uncontrolled hypertension. History: detailed HPI including onset, duration, prior medications, adherence and home BP log. Exam: multi-system exam including cardiovascular, pulmonary and extremities. MDM: moderate complexity with review of labs, medication adjustment, counseling on lifestyle, and explicit risk/benefit discussion. Documentation clearly supports 99214.";
+      showToast("Strong 99214 sample loaded.");
+    });
+
+    // MUE violation sample (96372 units > demo limit)
+    loadMueLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-04-05, 96372, , E11.9\n" +
+        "2025-04-05, 96372, , E11.9\n" +
+        "2025-04-05, 96372, , E11.9\n" +
+        "2025-04-05, 96372, , E11.9";
+      noteInput.value =
+        "Diabetic patient receiving multiple injections during nurse visit. Chart briefly notes 'insulin and other injections given' without unit-by-unit detail.";
+      showToast("MUE violation sample loaded.");
+    });
+
+    // Simple injection visit (low risk)
+    loadSimpleInjLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-04-20, 96372, , E11.9";
+      noteInput.value =
+        "Nurse visit for single subcutaneous injection related to diabetes management. Brief HPI and focused exam; no significant complexity beyond administration of medication.";
+      showToast("Simple injection sample loaded.");
+    });
+
+    // Wellness visit sample (no procedures, simple E/M)
+    loadWellnessLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-05-01, 99213, , Z00.00";
+      noteInput.value =
+        "Annual wellness visit. Preventive services, counseling on diet and exercise, review of screening history and risk factors. No acute complaints documented.";
+      showToast("Wellness visit sample loaded.");
+    });
+
+    // Thin note for 99215 (high risk for documentation)
+    loadThinEmLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-05-10, 99215, , I10";
+      noteInput.value =
+        "Follow-up for hypertension. BP checked. Meds refilled.";
+      showToast("Thin 99215 documentation sample loaded.");
+    });
+
+    // Cardiology E/M + ECG with proper modifier
+    loadCardioLinesBtn.addEventListener("click", () => {
+      quickLinesInput.value =
+        "2025-06-01, 99214, 25, I20.0\n" +
+        "2025-06-01, 93000, , I20.0";
+      noteInput.value =
+        "Patient with exertional chest pain. Detailed HPI, cardiac-focused exam, review of prior ECG and labs, moderate complexity MDM. Separate, clearly documented E/M service in addition to diagnostic ECG.";
+      showToast("Cardiology E/M + ECG sample loaded.");
+    });
+
+    // --- Build Claim from quick claim lines (DOS, CPT, Modifier, DX) ---
+
+    function buildClaimFromQuickLines(text) {
+      if (!text || !text.trim()) return null;
+
+      const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+
+      if (!lines.length) return null;
+
+      const items = [];
+      const dxSet = new Set();
+
+      lines.forEach((line, index) => {
+        const parts = line.split(/[|,]/).map((p) => p.trim());
+        const dos = parts[0] || "";
+        const cpt = parts[1] || "";
+        const modifierRaw = parts[2] || "";
+        const dx = parts[3] || "";
+
+        if (dx) dxSet.add(dx);
+
+        const modifiers = modifierRaw
+          .split(/[\s+;&]+/)
+          .map((m) => m.trim())
+          .filter((m) => m.length > 0);
+
+        if (!cpt) return;
+
+        const item = {
+          sequence: index + 1,
+          productOrService: {
+            coding: [
+              {
+                system: "http://www.ama-assn.org/go/cpt",
+                code: cpt
+              }
+            ]
+          }
+        };
+
+        if (dos) {
+          item.servicedDate = dos;
+        }
+
+        if (modifiers.length) {
+          item.modifier = modifiers.map((code) => ({
+            coding: [{ code }],
+            text: "From quick line entry"
+          }));
+        }
+
+        items.push(item);
+      });
+
+      const diagnosis = Array.from(dxSet).map((code, idx) => ({
+        sequence: idx + 1,
+        diagnosisCodeableConcept: {
+          coding: [
+            {
+              system: "http://hl7.org/fhir/sid/icd-10",
+              code
+            }
+          ]
+        }
+      }));
+
+      return {
+        resourceType: "Claim",
+        id: "claim-quick-lines",
+        status: "active",
+        type: { coding: [{ code: "professional" }] },
+        diagnosis,
+        item: items
+      };
+    }
+
+    // --- Main audit logic (demo-only) ---
+
+    function runAudit() {
+      let parsed;
+      try {
+        parsed = fhirInput && fhirInput.value ? JSON.parse(fhirInput.value) : cleanSample;
+      } catch (e) {
+        showToast("Invalid backend JSON. Falling back to clean sample.");
+        parsed = cleanSample;
+      }
+
+      const entries = Array.isArray(parsed.entry) ? parsed.entry : [];
+      const procedures = entries
+        .filter((e) => e.resource && e.resource.resourceType === "Procedure")
+        .map((e) => e.resource);
+      let claim = entries
+        .map((e) => e.resource)
+        .find((r) => r && r.resourceType === "Claim");
+      const conditions = entries
+        .filter((e) => e.resource && e.resource.resourceType === "Condition")
+        .map((e) => e.resource);
+
+      const quickClaim = buildClaimFromQuickLines(quickLinesInput.value);
+      if (quickClaim) {
+        claim = quickClaim;
+      }
+
+      const noteText = (noteInput.value || "").toLowerCase();
+
+      const numProcedures = procedures.length;
+      const numItems = claim && Array.isArray(claim.item) ? claim.item.length : 0;
+
+      metaProcedures.textContent = `Procedures detected: ${numProcedures}`;
+      metaCodes.textContent = `Claim lines: ${numItems}`;
+
+      const issues = [];
+      const suggestions = [];
+
+      const itemsDetail = [];
+      if (claim && Array.isArray(claim.item)) {
+        claim.item.forEach((item) => {
+          const coding = item.productOrService && item.productOrService.coding;
+          const cpt = coding && coding[0] && coding[0].code;
+          const modifiers = Array.isArray(item.modifier)
+            ? item.modifier.flatMap((m) =>
+                m.coding ? m.coding.map((c) => String(c.code || "").trim()) : []
+              )
+            : [];
+          const dos = item.servicedDate || null;
+          itemsDetail.push({
+            sequence: item.sequence,
+            cpt,
+            modifiers,
+            dos
+          });
+        });
+      }
+
+      const claimDxCodes =
+        claim && Array.isArray(claim.diagnosis)
+          ? claim.diagnosis.flatMap((dx) =>
+              dx.diagnosisCodeableConcept &&
+              dx.diagnosisCodeableConcept.coding
+                ? dx.diagnosisCodeableConcept.coding.map((c) => c.code)
+                : []
+            )
+          : [];
+
+      const clinicalDxCodes = conditions.flatMap((c) =>
+        c.code && c.code.coding ? c.code.coding.map((cd) => cd.code) : []
+      );
+
+      if (!quickClaim && numProcedures > numItems) {
+        issues.push(
+          "Detected more documented clinical procedures than billed claim lines. Some services may be under-coded or missing."
+        );
+        suggestions.push(
+          "Review all documented procedures and ensure each billable service (e.g., ECG, injections) has a corresponding claim line where appropriate."
+        );
+      }
+
+      if (claim && Array.isArray(claim.item)) {
+        const hasAnyProcedure =
+          itemsDetail.some((i) => i.cpt && !/^9921[3-5]$/.test(i.cpt));
+
+        claim.item.forEach((item, idx) => {
+          const productCode =
+            item.productOrService &&
+            item.productOrService.coding &&
+            item.productOrService.coding[0] &&
+            item.productOrService.coding[0].code;
+
+          const modifiers = Array.isArray(item.modifier)
+            ? item.modifier.flatMap((m) =>
+                m.coding ? m.coding.map((c) => c.code) : []
+              )
+            : [];
+
+          if (productCode && /^9921[3-5]$/.test(productCode) && hasAnyProcedure) {
+            const has25 =
+              modifiers &&
+              modifiers.some((code) => String(code).trim() === "25");
+
+            if (!has25) {
+              issues.push(
+                `Line ${idx + 1}: E/M code ${productCode} billed on the same DOS as procedures without modifier 25; may be denied as bundled.`
+              );
+              suggestions.push(
+                `If a significant, separately identifiable E/M service was provided, consider appending modifier 25 to ${productCode} and ensure documentation clearly supports it.`
+              );
+            }
+          }
+        });
+      }
+
+      if (!quickClaim && claimDxCodes.length && clinicalDxCodes.length) {
+        const overlap = claimDxCodes.some((code) =>
+          clinicalDxCodes.includes(code)
+        );
+
+        if (!overlap) {
+          issues.push(
+            "Primary claim diagnosis does not match any documented clinical diagnosis in the encounter."
+          );
+          suggestions.push(
+            "Align claim diagnoses with clinically documented conditions or update the chart so both reflect the same medical necessity story."
+          );
+        }
+      }
+
+      if (itemsDetail.length > 1) {
+        for (let i = 0; i < itemsDetail.length; i++) {
+          for (let j = i + 1; j < itemsDetail.length; j++) {
+            const a = itemsDetail[i];
+            const b = itemsDetail[j];
+            if (!a.cpt || !b.cpt) continue;
+
+            demoNcciPairs.forEach((pair) => {
+              const set = new Set(pair.codes);
+              if (set.has(a.cpt) && set.has(b.cpt)) {
+                const allowed = pair.allowedModifiers || [];
+                let hasAllowedModifier = false;
+
+                if (allowed.length) {
+                  const allMods = [...a.modifiers, ...b.modifiers].map((m) =>
+                    String(m || "").toUpperCase()
+                  );
+                  hasAllowedModifier = allMods.some((m) =>
+                    allowed.includes(m)
+                  );
+                }
+
+                if (!allowed.length || !hasAllowedModifier) {
+                  issues.push(
+                    `NCCI-style edit: CPT ${a.cpt} and ${b.cpt} reported together without an allowed modifier. ${pair.note}`
+                  );
+                  suggestions.push(
+                    `Review whether both ${a.cpt} and ${b.cpt} are separately reportable on this DOS. If clinically distinct and allowed, consider modifiers (${pair.allowedModifiers.join(
+                      ", "
+                    )}) with supporting documentation, or adjust coding.`
+                  );
+                }
+              }
+            });
+          }
+        }
+      }
+
+      if (itemsDetail.length > 1) {
+        const globalProcs = itemsDetail.filter((i) =>
+          i.cpt && globalSurgeryMap[i.cpt]
+        );
+        const emLines = itemsDetail.filter(
+          (i) => i.cpt && /^9921[3-5]$/.test(i.cpt)
+        );
+
+        globalProcs.forEach((proc) => {
+          emLines.forEach((em) => {
+            if (!proc.dos || !em.dos) return;
+            if (proc.dos === em.dos) {
+              const hasGlobalModifier = em.modifiers.some((m) =>
+                ["24", "25", "57"].includes(String(m))
+              );
+              if (!hasGlobalModifier) {
+                issues.push(
+                  `Global period demo: E/M code ${em.cpt} on the same DOS as global procedure ${proc.cpt} without modifiers 24, 25 or 57.`
+                );
+                suggestions.push(
+                  `If the E/M encounter is unrelated or a decision for surgery, consider whether modifiers 24, 25, or 57 are appropriate and supported, or if the visit is bundled in the global period for ${proc.cpt}.`
+                );
+              }
+            }
+          });
+        });
+      }
+
+      if (itemsDetail.length) {
+        const counts = {};
+        itemsDetail.forEach((i) => {
+          if (!i.cpt) return;
+          counts[i.cpt] = (counts[i.cpt] || 0) + 1;
+        });
+
+        Object.keys(counts).forEach((cpt) => {
+          const limit = mueMap[cpt];
+          if (limit && counts[cpt] > limit) {
+            issues.push(
+              `MUE-style edit: CPT ${cpt} appears ${counts[cpt]} times in this claim; demo limit is ${limit} units per DOS.`
+            );
+            suggestions.push(
+              `Confirm medical necessity and documentation for multiple units of ${cpt}. If services are duplicate or entered in error, adjust units or consolidate lines to respect MUE thresholds.`
+            );
+          }
+        });
+      }
+
+      if (claimDxCodes.length && itemsDetail.length) {
+        itemsDetail.forEach((item) => {
+          if (!item.cpt) return;
+          const allowedDx = lcdTable[item.cpt];
+          if (!allowedDx || !allowedDx.length) return;
+
+          const hasCoveredDx = claimDxCodes.some((dx) =>
+            allowedDx.includes(dx)
+          );
+
+          if (!hasCoveredDx) {
+            issues.push(
+              `LCD-style check: CPT ${item.cpt} may not meet demo coverage criteria for any of the listed diagnoses (${claimDxCodes.join(
+                ", "
+              )}).`
+            );
+            suggestions.push(
+              `Validate that diagnosis selection supports medical necessity for ${item.cpt} under payer/LCD rules. If appropriate, update to the most specific and accurate diagnosis documented.`
+            );
+          }
+        });
+      }
+
+      const hasHighLevelEM = itemsDetail.some((i) =>
+        i.cpt && /^9921[45]$/.test(i.cpt)
+      );
+      if (hasHighLevelEM) {
+        if (!noteText || noteText.length < 120) {
+          issues.push(
+            "E/M documentation may be thin for a level 4/5 visit based on the short clinical note excerpt."
+          );
+          suggestions.push(
+            "Ensure the note includes a clear HPI, appropriate ROS/Exam, and well-documented MDM describing data reviewed, risk, and assessment/plan to support the billed E/M level."
+          );
+        } else {
+          const hasHistory = noteText.includes("history") || noteText.includes("hpi");
+          const hasExam = noteText.includes("exam") || noteText.includes("physical");
+          const hasMdm =
+            noteText.includes("decision") ||
+            noteText.includes("mdm") ||
+            noteText.includes("assessment");
+
+          if (!(hasHistory && hasExam && hasMdm)) {
+            issues.push(
+              "High-level E/M present but documentation excerpt may not clearly show history, exam and medical decision making."
+            );
+            suggestions.push(
+              "Consider structuring E/M notes with explicit sections for History, Exam and MDM, and ensure each is robust enough to support the selected level."
+            );
+          }
+        }
+      }
+
+      const highImpactKeywords = ["NCCI-style", "MUE-style", "Global period demo", "LCD-style", "High-risk"];
+      let highImpactCount = 0;
+
+      issues.forEach((txt) => {
+        const isHigh = highImpactKeywords.some((k) => txt.includes(k));
+        if (isHigh) highImpactCount += 1;
+      });
+
+      let riskScore;
+      if (!issues.length) {
+        // Baseline low risk when no findings
+        riskScore = 5;
+      } else {
+        // Start higher when there are findings, then scale by count & severity
+        riskScore = 25 + issues.length * 10 + highImpactCount * 10;
+        if (riskScore > 98) riskScore = 98;
+      }
+
+      const riskPercentText = `${riskScore}%`;
+      riskPercent.textContent = riskPercentText;
+      scoreBar.style.width = `${Math.max(8, riskScore)}%`;
+
+      metaFlags.textContent = `Issues flagged: ${issues.length}`;
+
+      if (!issues.length) {
+        summaryText.textContent =
+          quickClaim
+            ? "No major risks detected for the quick-entry claim lines based on demo rules."
+            : "No major risks detected. Coding appears consistent with documented data based on demo rules.";
+        statusPill.classList.remove("danger");
+        statusPill.innerHTML =
+          '<span class="indicator"></span> Low risk (demo)';
+      } else if (riskScore < 55) {
+        summaryText.textContent =
+          "Some moderate findings detected. We recommend coder review before claim submission.";
+        statusPill.classList.add("danger");
+        statusPill.innerHTML =
+          '<span class="indicator"></span> Moderate risk (demo)';
+      } else {
+        summaryText.textContent =
+          "High-risk pattern detected. This claim is likely to face denials, MUE/NCCI edits, or audit scrutiny if submitted as-is.";
+        statusPill.classList.add("danger");
+        statusPill.innerHTML =
+          '<span class="indicator"></span> High risk (demo)';
+      }
+
+      issuesList.innerHTML = "";
+      suggestionsList.innerHTML = "";
+
+      if (issues.length) {
+        issuesEmpty.style.display = "none";
+        issues.forEach((text) => {
+          const li = document.createElement("li");
+          li.textContent = text;
+          issuesList.appendChild(li);
+        });
+      } else {
+        issuesEmpty.style.display = "block";
+      }
+
+      if (suggestions.length) {
+        suggestionsEmpty.style.display = "none";
+        suggestions.forEach((text) => {
+          const li = document.createElement("li");
+          li.textContent = text;
+          suggestionsList.appendChild(li);
+        });
+      } else {
+        suggestionsEmpty.style.display = "block";
+      }
+
+      if (claim) {
+        const claimPreview = {
+          resourceType: claim.resourceType,
+          id: claim.id,
+          diagnosis: claim.diagnosis,
+          item: claim.item
+        };
+        if (previewCode) {
+          previewCode.textContent = JSON.stringify(claimPreview, null, 2);
+        }
+      }
+
+      showToast(
+        quickClaim
+          ? "Audit complete using quick claim lines + demo rules."
+          : "Audit complete. Demo rules applied."
+      );
+    }
+
+    runAuditBtn.addEventListener("click", runAudit);
+  </script>
+</body>
+</html>
